@@ -1,53 +1,28 @@
-#include "gameplay/Player.hpp"
+﻿#include "gameplay/Player.hpp"
 #include <raylib.h>
 #include <cmath>
 
-Player::Player(const Vec2& startPos, float startAngle, float eyeHeight)
-    : position(startPos), eyeZ(eyeHeight), angle(startAngle)
+Player::Player(const Vec2& pos, float ang, float eyeH)
+    : position(pos), eyeZ(eyeH), angle(ang)
 {
 }
 
 void Player::update(float dt)
 {
-    // Mouse look (primary)
-    Vector2 mouseDelta = GetMouseDelta();
-    angle += mouseDelta.x * mouseSensitivity;
+    Vector2 md = GetMouseDelta();
+    angle += md.x * mouseSensitivity;
 
-    // Keyboard turn fallback (Q/E or Arrow keys)
-    if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_Q))
-    {
-        angle -= turnSpeed * dt;
-    }
-    if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_E))
-    {
-        angle += turnSpeed * dt;
-    }
-
-    // Forward and right unit direction vectors
     Vec2 forward{std::cos(angle), std::sin(angle)};
     Vec2 right{-std::sin(angle), std::cos(angle)};
 
-    Vec2 moveDir{0.0f, 0.0f};
+    Vec2 move{0.0f, 0.0f};
+    if (IsKeyDown(KEY_W)) move += forward;
+    if (IsKeyDown(KEY_S)) move -= forward;
+    if (IsKeyDown(KEY_D)) move += right;
+    if (IsKeyDown(KEY_A)) move -= right;
 
-    if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))
+    if (move.length() > 0.0001f)
     {
-        moveDir += forward;
-    }
-    if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))
-    {
-        moveDir -= forward;
-    }
-    if (IsKeyDown(KEY_D))
-    {
-        moveDir += right;
-    }
-    if (IsKeyDown(KEY_A))
-    {
-        moveDir -= right;
-    }
-
-    if (moveDir.lengthSq() > 0.0001f)
-    {
-        position += moveDir.normalized() * (moveSpeed * dt);
+        position += move.normalized() * (moveSpeed * dt);
     }
 }

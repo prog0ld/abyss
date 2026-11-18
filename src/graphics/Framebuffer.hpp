@@ -11,19 +11,14 @@ struct Framebuffer
     Framebuffer() = default;
     Framebuffer(int w, int h);
 
-    void resize(int w, int h);
-    void clear(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255);
+    void clear(uint8_t r, uint8_t g, uint8_t b);
     void setPixel(int x, int y, uint32_t color);
-    void setPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255);
 
-    void drawLine(int x0, int y0, int x1, int y1, uint32_t color);
-    void drawRect(int x, int y, int w, int h, uint32_t color);
-
-    static constexpr uint32_t packRGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
+    static constexpr uint32_t rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
     {
-        return (static_cast<uint32_t>(a) << 24)
-             | (static_cast<uint32_t>(b) << 16)
-             | (static_cast<uint32_t>(g) <<  8)
-             | (static_cast<uint32_t>(r));
+        return (static_cast<uint32_t>(a) << 24) |
+               (static_cast<uint32_t>(b) << 16) |
+               (static_cast<uint32_t>(g) << 8)  |
+               (static_cast<uint32_t>(r));
     }
 };
