@@ -2,8 +2,8 @@
 #include <raylib.h>
 #include <cmath>
 
-Player::Player(const Vec2& pos, float ang, float eyeH)
-    : position(pos), eyeZ(eyeH), angle(ang)
+Player::Player(const Vec2& pos, float ang, float eyeH, int sector)
+    : position(pos), currentSector(sector), eyeZ(eyeH), angle(ang)
 {
 }
 

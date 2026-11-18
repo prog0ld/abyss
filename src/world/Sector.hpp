@@ -15,8 +15,8 @@ struct Sector
     Sector(float floorH, float ceilH, uint32_t floorCol, uint32_t ceilCol)
         : floorHeight(floorH), ceilingHeight(ceilH), floorColor(floorCol), ceilingColor(ceilCol) {}
 
-    void addWall(const Vec2& p0, const Vec2& p1, uint32_t color = 0xFF808080)
+    void addWall(const Vec2& p0, const Vec2& p1, int portal = -1, uint32_t color = 0xFF808080)
     {
-        walls.emplace_back(p0, p1, color);
+        walls.emplace_back(p0, p1, portal, color);
     }
 };
