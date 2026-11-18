@@ -9,7 +9,11 @@ Player::Player(const Vec2& startPos, float startAngle, float eyeHeight)
 
 void Player::update(float dt)
 {
-    // Turn controls (A / D or Left / Right arrow keys)
+    // Mouse look (primary)
+    Vector2 mouseDelta = GetMouseDelta();
+    angle += mouseDelta.x * mouseSensitivity;
+
+    // Keyboard turn fallback (Q/E or Arrow keys)
     if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_Q))
     {
         angle -= turnSpeed * dt;

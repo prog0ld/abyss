@@ -37,6 +37,9 @@ bool Application::init()
     InitWindow(WIN_WIDTH, WIN_HEIGHT, "ABYSS — 2.5D Sector Engine");
     SetTargetFPS(60);
 
+    // Capture and hide mouse cursor for standard FPS controls
+    DisableCursor();
+
     setupWorld();
 
     // Initial clear
@@ -57,7 +60,23 @@ bool Application::init()
 
 void Application::update(float dt)
 {
-    player.update(dt);
+    // Toggle cursor capture with TAB or ESCAPE
+    if (IsKeyPressed(KEY_TAB))
+    {
+        if (IsCursorHidden())
+        {
+            EnableCursor();
+        }
+        else
+        {
+            DisableCursor();
+        }
+    }
+
+    if (IsCursorHidden())
+    {
+        player.update(dt);
+    }
 
     // Basic wall collision constraint (keep player within room boundaries)
     float minB = 1.3f;
@@ -94,7 +113,7 @@ void Application::render()
 
         // Debug & Learning HUD
         DrawText("ABYSS: Phase 4 — First 3D Sector Wall Projection", 14, 14, 20, RAYWHITE);
-        DrawText("W/S: Move  |  A/D: Strafe  |  Q/E or Left/Right: Turn", 14, 38, 16, LIGHTGRAY);
+        DrawText("Mouse: Look  |  W/S/A/D: Move & Strafe  |  TAB: Lock/Free Mouse", 14, 38, 16, LIGHTGRAY);
 
         int deg = static_cast<int>(player.angle * 180.0f / 3.14159f) % 360;
         if (deg < 0) deg += 360;
