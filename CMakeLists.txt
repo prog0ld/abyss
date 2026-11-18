@@ -21,6 +21,11 @@ find_package(raylib REQUIRED)
 
 add_executable(abyss
     src/main.cpp
+    src/core/Application.cpp
+    src/graphics/Framebuffer.cpp
+    src/gameplay/Player.cpp
 )
+
+target_include_directories(abyss PRIVATE src)
 
 target_link_libraries(abyss PRIVATE raylib)
