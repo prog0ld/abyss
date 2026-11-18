@@ -1,10 +1,10 @@
-﻿#include "core/Application.hpp"
+#include "core/Application.hpp"
 #include <cmath>
 #include <string>
 
 Application::Application()
     : framebuffer(FB_WIDTH, FB_HEIGHT)
-    , player(Vec2{FB_WIDTH * 0.5f, FB_HEIGHT * 0.5f}, 0.0f)
+    , player(Vec2{5.0f, 5.0f}, 1.570796f, 1.6f) // Centered in room, facing forward
 {
 }
 
@@ -13,10 +13,31 @@ Application::~Application()
     shutdown();
 }
 
+void Application::setupWorld()
+{
+    // A 10x10m underground laboratory sector
+    // Floor at 0.0m, Ceiling at 3.0m
+    testRoom = Sector(0.0f, 3.0f,
+                      Framebuffer::packRGBA(38, 42, 48),  // Dark concrete floor
+                      Framebuffer::packRGBA(20, 22, 26)); // Industrial ceiling
+
+    // 4 Walls oriented clockwise around room perimeter:
+    // South wall
+    testRoom.addWall(Vec2{1.0f, 1.0f}, Vec2{9.0f, 1.0f}, -1, Framebuffer::packRGBA(105, 115, 125));
+    // East wall
+    testRoom.addWall(Vec2{9.0f, 1.0f}, Vec2{9.0f, 9.0f}, -1, Framebuffer::packRGBA(85, 115, 125));
+    // North wall
+    testRoom.addWall(Vec2{9.0f, 9.0f}, Vec2{1.0f, 9.0f}, -1, Framebuffer::packRGBA(125, 115, 85));
+    // West wall
+    testRoom.addWall(Vec2{1.0f, 9.0f}, Vec2{1.0f, 1.0f}, -1, Framebuffer::packRGBA(125, 95, 90));
+}
+
 bool Application::init()
 {
-    InitWindow(WIN_WIDTH, WIN_HEIGHT, "ABYSS — Sector FPS Prototype");
+    InitWindow(WIN_WIDTH, WIN_HEIGHT, "ABYSS — 2.5D Sector Engine");
     SetTargetFPS(60);
+
+    setupWorld();
 
     // Initial clear
     framebuffer.clear(15, 18, 24);
@@ -38,60 +59,78 @@ void Application::update(float dt)
 {
     player.update(dt);
 
-    // Keep player inside framebuffer bounds for this prototype
-    if (player.position.x < 10.0f) player.position.x = 10.0f;
-    if (player.position.x > FB_WIDTH - 10.0f) player.position.x = FB_WIDTH - 10.0f;
-    if (player.position.y < 10.0f) player.position.y = 10.0f;
-    if (player.position.y > FB_HEIGHT - 10.0f) player.position.y = FB_HEIGHT - 10.0f;
+    // Basic wall collision constraint (keep player within room boundaries)
+    float minB = 1.3f;
+    float maxB = 8.7f;
+    if (player.position.x < minB) player.position.x = minB;
+    if (player.position.x > maxB) player.position.x = maxB;
+    if (player.position.y < minB) player.position.y = minB;
+    if (player.position.y > maxB) player.position.y = maxB;
 }
 
 void Application::render()
 {
-    // 1. Clear CPU Framebuffer
-    framebuffer.clear(16, 20, 26);
+    // 1. Render 3D first-person perspective into CPU software framebuffer!
+    renderer.render(framebuffer, testRoom, player);
 
-    // 2. Draw test room outline on the software framebuffer
-    uint32_t wallColor = Framebuffer::packRGBA(70, 90, 110);
-    framebuffer.drawRect(30, 20, FB_WIDTH - 60, 2, wallColor);
-    framebuffer.drawRect(30, FB_HEIGHT - 22, FB_WIDTH - 60, 2, wallColor);
-    framebuffer.drawRect(30, 20, 2, FB_HEIGHT - 40, wallColor);
-    framebuffer.drawRect(FB_WIDTH - 32, 20, 2, FB_HEIGHT - 40, wallColor);
-
-    // 3. Draw Player on the software framebuffer
-    int px = static_cast<int>(player.position.x);
-    int py = static_cast<int>(player.position.y);
-    uint32_t playerColor = Framebuffer::packRGBA(0, 230, 255);
-
-    // Player body (a 5x5 square)
-    framebuffer.drawRect(px - 2, py - 2, 5, 5, playerColor);
-
-    // Player direction sight line (16 pixels ahead)
-    int targetX = px + static_cast<int>(std::cos(player.angle) * 16.0f);
-    int targetY = py + static_cast<int>(std::sin(player.angle) * 16.0f);
-    framebuffer.drawLine(px, py, targetX, targetY, Framebuffer::packRGBA(255, 220, 50));
-
-    // 4. Upload Framebuffer to GPU Texture
+    // 2. Upload Framebuffer to GPU Texture
     UpdateTexture(texture, framebuffer.pixels.data());
 
-    // 5. Present to Screen using Raylib
+    // 3. Present to Screen using Raylib
     Rectangle srcRect  = { 0.0f, 0.0f, static_cast<float>(FB_WIDTH), static_cast<float>(FB_HEIGHT) };
     Rectangle destRect = { 0.0f, 0.0f, static_cast<float>(WIN_WIDTH), static_cast<float>(WIN_HEIGHT) };
     Vector2 origin     = { 0.0f, 0.0f };
 
     BeginDrawing();
         ClearBackground(BLACK);
+        // Draw 3D software-rendered world scaled to window
         DrawTexturePro(texture, srcRect, destRect, origin, 0.0f, WHITE);
 
-        // Overlay status info
-        DrawText("ABYSS: Phase 1 — Player Movement & Framebuffer Verification", 12, 12, 20, RAYWHITE);
-        DrawText("Controls: W/S/A/D to Move, Q/E or Left/Right to Rotate view", 12, 38, 18, LIGHTGRAY);
+        // Crosshair in center
+        int cx = WIN_WIDTH / 2;
+        int cy = WIN_HEIGHT / 2;
+        DrawLine(cx - 6, cy, cx + 6, cy, Color{0, 255, 200, 180});
+        DrawLine(cx, cy - 6, cx, cy + 6, Color{0, 255, 200, 180});
 
-        std::string posText = "Pos: (" + std::to_string(static_cast<int>(player.position.x)) +
-                              ", " + std::to_string(static_cast<int>(player.position.y)) +
-                              ") | Angle: " + std::to_string(static_cast<int>(player.angle * 180.0f / 3.14159f)) + " deg";
-        DrawText(posText.c_str(), 12, 62, 18, YELLOW);
+        // Debug & Learning HUD
+        DrawText("ABYSS: Phase 4 — First 3D Sector Wall Projection", 14, 14, 20, RAYWHITE);
+        DrawText("W/S: Move  |  A/D: Strafe  |  Q/E or Left/Right: Turn", 14, 38, 16, LIGHTGRAY);
 
-        DrawFPS(WIN_WIDTH - 90, 12);
+        int deg = static_cast<int>(player.angle * 180.0f / 3.14159f) % 360;
+        if (deg < 0) deg += 360;
+        std::string posText = "Pos: (" + std::to_string(player.position.x).substr(0, 4) +
+                              ", " + std::to_string(player.position.y).substr(0, 4) +
+                              ") | Yaw: " + std::to_string(deg) + " deg";
+        DrawText(posText.c_str(), 14, 60, 16, YELLOW);
+
+        // Mini 2D Top-Down Radar in top-right corner
+        int radarX = WIN_WIDTH - 120;
+        int radarY = 20;
+        int radarSize = 100;
+        DrawRectangle(radarX, radarY, radarSize, radarSize, Color{10, 15, 20, 200});
+        DrawRectangleLines(radarX, radarY, radarSize, radarSize, DARKGRAY);
+
+        // Draw room boundary on radar
+        float rScale = radarSize / 10.0f;
+        for (const auto& w : testRoom.walls)
+        {
+            DrawLine(radarX + static_cast<int>(w.p0.x * rScale),
+                     radarY + static_cast<int>(w.p0.y * rScale),
+                     radarX + static_cast<int>(w.p1.x * rScale),
+                     radarY + static_cast<int>(w.p1.y * rScale),
+                     GRAY);
+        }
+
+        // Draw player dot and view cone on radar
+        int rpx = radarX + static_cast<int>(player.position.x * rScale);
+        int rpy = radarY + static_cast<int>(player.position.y * rScale);
+        DrawCircle(rpx, rpy, 3, Color{0, 230, 255, 255});
+        DrawLine(rpx, rpy,
+                 rpx + static_cast<int>(std::cos(player.angle) * 12.0f),
+                 rpy + static_cast<int>(std::sin(player.angle) * 12.0f),
+                 YELLOW);
+
+        DrawFPS(WIN_WIDTH - 80, WIN_HEIGHT - 30);
     EndDrawing();
 }
 
@@ -100,7 +139,7 @@ void Application::run()
     while (isRunning && !WindowShouldClose())
     {
         float dt = GetFrameTime();
-        if (dt > 0.1f) dt = 0.1f; // Clamp delta-time against spiral-of-death on pauses
+        if (dt > 0.1f) dt = 0.1f;
 
         update(dt);
         render();

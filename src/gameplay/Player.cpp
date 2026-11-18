@@ -1,9 +1,9 @@
-﻿#include "gameplay/Player.hpp"
+#include "gameplay/Player.hpp"
 #include <raylib.h>
 #include <cmath>
 
-Player::Player(const Vec2& startPos, float startAngle)
-    : position(startPos), angle(startAngle)
+Player::Player(const Vec2& startPos, float startAngle, float eyeHeight)
+    : position(startPos), eyeZ(eyeHeight), angle(startAngle)
 {
 }
 

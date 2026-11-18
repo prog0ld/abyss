@@ -1,6 +1,8 @@
-﻿#pragma once
+#pragma once
 #include <raylib.h>
 #include "graphics/Framebuffer.hpp"
+#include "graphics/Renderer.hpp"
+#include "world/Sector.hpp"
 #include "gameplay/Player.hpp"
 
 struct Application
@@ -12,6 +14,8 @@ struct Application
 
     Framebuffer framebuffer;
     Texture2D texture{};
+    Renderer renderer;
+    Sector testRoom;
     Player player;
     bool isRunning{false};
 
@@ -23,4 +27,7 @@ struct Application
     void update(float dt);
     void render();
     void shutdown();
+
+private:
+    void setupWorld();
 };

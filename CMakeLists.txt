@@ -23,6 +23,7 @@ add_executable(abyss
     src/main.cpp
     src/core/Application.cpp
     src/graphics/Framebuffer.cpp
+    src/graphics/Renderer.cpp
     src/gameplay/Player.cpp
 )
 
