@@ -3,29 +3,31 @@
 
 void Application::init()
 {
-    InitWindow(WIN_WIDTH, WIN_HEIGHT, "ABYSS — Sector & Portal Engine");
+    InitWindow(WIN_WIDTH, WIN_HEIGHT, "ABYSS — Sector FPS (Textured)");
     SetTargetFPS(60);
     DisableCursor();
 
-    // Sector 0: Main Laboratory (8x8m, floor: 0.0m, ceil: 3.0m)
-    Sector lab(0.0f, 3.0f, Framebuffer::rgba(35, 38, 44), Framebuffer::rgba(22, 24, 28));
-    lab.addWall(Vec2{1.0f, 1.0f}, Vec2{9.0f, 1.0f}, -1, Framebuffer::rgba(100, 110, 120));
-    lab.addWall(Vec2{9.0f, 1.0f}, Vec2{9.0f, 9.0f}, -1, Framebuffer::rgba(85, 110, 120));
-    
-    // North wall of lab with doorway into hallway (portal to Sector 1)
-    lab.addWall(Vec2{9.0f, 9.0f}, Vec2{6.0f, 9.0f}, -1, Framebuffer::rgba(120, 110, 85));
-    lab.addWall(Vec2{6.0f, 9.0f}, Vec2{4.0f, 9.0f},  1, Framebuffer::rgba(140, 130, 90)); // Portal to Sector 1
-    lab.addWall(Vec2{4.0f, 9.0f}, Vec2{1.0f, 9.0f}, -1, Framebuffer::rgba(120, 110, 85));
+    textures.init();
 
-    lab.addWall(Vec2{1.0f, 9.0f}, Vec2{1.0f, 1.0f}, -1, Framebuffer::rgba(115, 95, 90));
+    // Sector 0: Main Laboratory (tex 0: Metal Panels, tex 1: Hazard Stripes around doorway)
+    Sector lab(0.0f, 3.0f, Framebuffer::rgba(35, 38, 44), Framebuffer::rgba(22, 24, 28));
+    lab.addWall(Vec2{1.0f, 1.0f}, Vec2{9.0f, 1.0f}, -1, 0);
+    lab.addWall(Vec2{9.0f, 1.0f}, Vec2{9.0f, 9.0f}, -1, 0);
+    
+    // North wall of lab with hazard doorway
+    lab.addWall(Vec2{9.0f, 9.0f}, Vec2{6.0f, 9.0f}, -1, 0);
+    lab.addWall(Vec2{6.0f, 9.0f}, Vec2{4.0f, 9.0f},  1, 1); // Portal with Hazard stripes!
+    lab.addWall(Vec2{4.0f, 9.0f}, Vec2{1.0f, 9.0f}, -1, 0);
+
+    lab.addWall(Vec2{1.0f, 9.0f}, Vec2{1.0f, 1.0f}, -1, 0);
     world.addSector(lab);
 
-    // Sector 1: Maintenance Hallway (2x7m, floor: 0.3m step, ceil: 2.4m)
+    // Sector 1: Maintenance Hallway (tex 2: Industrial Tiles, end wall tex 1)
     Sector hall(0.3f, 2.4f, Framebuffer::rgba(45, 38, 35), Framebuffer::rgba(28, 22, 20));
-    hall.addWall(Vec2{4.0f, 9.0f},  Vec2{6.0f, 9.0f},  0, Framebuffer::rgba(140, 130, 90)); // Portal back to Sector 0
-    hall.addWall(Vec2{6.0f, 9.0f},  Vec2{6.0f, 16.0f}, -1, Framebuffer::rgba(95, 105, 115));
-    hall.addWall(Vec2{6.0f, 16.0f}, Vec2{4.0f, 16.0f}, -1, Framebuffer::rgba(130, 70, 70)); // End of hall (red emergency door)
-    hall.addWall(Vec2{4.0f, 16.0f}, Vec2{4.0f, 9.0f},  -1, Framebuffer::rgba(95, 105, 115));
+    hall.addWall(Vec2{4.0f, 9.0f},  Vec2{6.0f, 9.0f},  0, 1); // Portal back
+    hall.addWall(Vec2{6.0f, 9.0f},  Vec2{6.0f, 16.0f}, -1, 2);
+    hall.addWall(Vec2{6.0f, 16.0f}, Vec2{4.0f, 16.0f}, -1, 1); // End wall hazard
+    hall.addWall(Vec2{4.0f, 16.0f}, Vec2{4.0f, 9.0f},  -1, 2);
     world.addSector(hall);
 
     Image img;
@@ -51,7 +53,6 @@ void Application::update(float dt)
         player.update(dt);
     }
 
-    // Detect which sector the player is currently inside
     int foundSec = world.findSector(player.position);
     if (foundSec != -1)
     {
@@ -62,7 +63,7 @@ void Application::update(float dt)
 
 void Application::render()
 {
-    renderer.render(framebuffer, world, player);
+    renderer.render(framebuffer, world, textures, player);
     UpdateTexture(texture, framebuffer.pixels.data());
 
     Rectangle src = {0.0f, 0.0f, (float)FB_WIDTH, (float)FB_HEIGHT};
@@ -77,13 +78,11 @@ void Application::render()
         DrawLine(cx - 5, cy, cx + 5, cy, GREEN);
         DrawLine(cx, cy - 5, cx, cy + 5, GREEN);
 
-        // Minimap / Radar in top-right
+        // Minimap
         int rx = WIN_WIDTH - 120;
         int ry = 20;
-        int rw = 100;
-        int rh = 120;
-        DrawRectangle(rx, ry, rw, rh, Color{10, 15, 20, 220});
-        DrawRectangleLines(rx, ry, rw, rh, DARKGRAY);
+        DrawRectangle(rx, ry, 100, 120, Color{10, 15, 20, 220});
+        DrawRectangleLines(rx, ry, 100, 120, DARKGRAY);
 
         float s = 6.0f;
         for (const auto& sec : world.sectors)

@@ -2,7 +2,7 @@
 #include <cmath>
 #include <algorithm>
 
-void Renderer::render(Framebuffer& fb, const World& world, const Player& player)
+void Renderer::render(Framebuffer& fb, const World& world, const TextureManager& textures, const Player& player)
 {
     fb.clear(10, 12, 16);
 
@@ -11,14 +11,12 @@ void Renderer::render(Framebuffer& fb, const World& world, const Player& player)
 
     int startSector = player.currentSector;
     if (startSector < 0 || startSector >= static_cast<int>(world.sectors.size()))
-    {
         startSector = 0;
-    }
 
-    renderSector(fb, world, player, startSector, 0, fb.width - 1, topClip, botClip, 0);
+    renderSector(fb, world, textures, player, startSector, 0, fb.width - 1, topClip, botClip, 0);
 }
 
-void Renderer::renderSector(Framebuffer& fb, const World& world, const Player& player,
+void Renderer::renderSector(Framebuffer& fb, const World& world, const TextureManager& textures, const Player& player,
                             int sectorId, int startCol, int endCol,
                             std::vector<int>& topClip, std::vector<int>& botClip, int depth)
 {
@@ -40,25 +38,36 @@ void Renderer::renderSector(Framebuffer& fb, const World& world, const Player& p
         float dx1 = wall.p1.x - player.position.x;
         float dy1 = wall.p1.y - player.position.y;
 
-        float z0 = dx0 * cosA + dy0 * sinA;
-        float x0 = -dx0 * sinA + dy0 * cosA;
-        float z1 = dx1 * cosA + dy1 * sinA;
-        float x1 = -dx1 * sinA + dy1 * cosA;
+        float origZ0 = dx0 * cosA + dy0 * sinA;
+        float origX0 = -dx0 * sinA + dy0 * cosA;
+        float origZ1 = dx1 * cosA + dy1 * sinA;
+        float origX1 = -dx1 * sinA + dy1 * cosA;
+
+        float z0 = origZ0;
+        float x0 = origX0;
+        float z1 = origZ1;
+        float x1 = origX1;
 
         if (z0 <= nearZ && z1 <= nearZ)
             continue;
+
+        float wallLen = (wall.p1 - wall.p0).length();
+        float u0 = 0.0f;
+        float u1 = wallLen;
 
         if (z0 < nearZ)
         {
             float t = (nearZ - z0) / (z1 - z0);
             z0 = nearZ;
             x0 = x0 + t * (x1 - x0);
+            u0 = u0 + t * (u1 - u0);
         }
         else if (z1 < nearZ)
         {
             float t = (nearZ - z1) / (z0 - z1);
             z1 = nearZ;
             x1 = x1 + t * (x0 - x1);
+            u1 = u1 + t * (u0 - u1);
         }
 
         float sx0 = halfW + (x0 * focalLen) / z0;
@@ -99,9 +108,8 @@ void Renderer::renderSector(Framebuffer& fb, const World& world, const Player& p
         }
 
         float invSpan = 1.0f / (sx1 - sx0);
-        uint8_t baseR = static_cast<uint8_t>(wall.color & 0xFF);
-        uint8_t baseG = static_cast<uint8_t>((wall.color >> 8) & 0xFF);
-        uint8_t baseB = static_cast<uint8_t>((wall.color >> 16) & 0xFF);
+        int texIndex = std::clamp(wall.textureId, 0, static_cast<int>(textures.textures.size()) - 1);
+        const WallTexture& tex = textures.textures[texIndex];
 
         std::vector<int> portalTop(fb.width);
         std::vector<int> portalBot(fb.width);
@@ -109,7 +117,10 @@ void Renderer::renderSector(Framebuffer& fb, const World& world, const Player& p
         for (int col = wallStart; col <= wallEnd; ++col)
         {
             float t = (col - sx0) * invSpan;
-            float z = 1.0f / ((1.0f - t) / z0 + t / z1);
+            float invZ = (1.0f - t) / z0 + t / z1;
+            float z = 1.0f / invZ;
+
+            float u = ((1.0f - t) * (u0 / z0) + t * (u1 / z1)) / invZ;
 
             int cTop = static_cast<int>(std::ceil((1.0f - t) * sy0_ceil  + t * sy1_ceil));
             int cBot = static_cast<int>(std::floor((1.0f - t) * sy0_floor + t * sy1_floor));
@@ -124,18 +135,25 @@ void Renderer::renderSector(Framebuffer& fb, const World& world, const Player& p
                 fb.pixels[y * fb.width + col] = sector.floorColor;
 
             float shade = std::clamp(1.0f - (z / 20.0f), 0.2f, 1.0f);
-            uint32_t colColor = Framebuffer::rgba(
-                static_cast<uint8_t>(baseR * shade),
-                static_cast<uint8_t>(baseG * shade),
-                static_cast<uint8_t>(baseB * shade)
-            );
+            float wallHeightScreen = static_cast<float>(cBot - cTop);
+            if (wallHeightScreen < 1.0f) wallHeightScreen = 1.0f;
 
             if (!isPortal)
             {
                 int drawTop = std::clamp(cTop, curTop, curBot);
                 int drawBot = std::clamp(cBot, curTop, curBot);
+
                 for (int y = drawTop; y <= drawBot; ++y)
-                    fb.pixels[y * fb.width + col] = colColor;
+                {
+                    float v = static_cast<float>(y - cTop) / wallHeightScreen;
+                    uint32_t texel = tex.sample(u, v);
+
+                    uint8_t r = static_cast<uint8_t>((texel & 0xFF) * shade);
+                    uint8_t g = static_cast<uint8_t>(((texel >> 8) & 0xFF) * shade);
+                    uint8_t b = static_cast<uint8_t>(((texel >> 16) & 0xFF) * shade);
+
+                    fb.pixels[y * fb.width + col] = Framebuffer::rgba(r, g, b);
+                }
 
                 topClip[col] = fb.height;
             }
@@ -147,12 +165,26 @@ void Renderer::renderSector(Framebuffer& fb, const World& world, const Player& p
                 int stepTop = std::clamp(cTop, curTop, curBot);
                 int stepCeilBot = std::clamp(ncTop - 1, curTop, curBot);
                 for (int y = stepTop; y <= stepCeilBot; ++y)
-                    fb.pixels[y * fb.width + col] = colColor;
+                {
+                    float v = static_cast<float>(y - cTop) / wallHeightScreen;
+                    uint32_t texel = tex.sample(u, v);
+                    uint8_t r = static_cast<uint8_t>((texel & 0xFF) * shade);
+                    uint8_t g = static_cast<uint8_t>(((texel >> 8) & 0xFF) * shade);
+                    uint8_t b = static_cast<uint8_t>(((texel >> 16) & 0xFF) * shade);
+                    fb.pixels[y * fb.width + col] = Framebuffer::rgba(r, g, b);
+                }
 
                 int stepFloorTop = std::clamp(ncBot + 1, curTop, curBot);
                 int stepBot = std::clamp(cBot, curTop, curBot);
                 for (int y = stepFloorTop; y <= stepBot; ++y)
-                    fb.pixels[y * fb.width + col] = colColor;
+                {
+                    float v = static_cast<float>(y - cTop) / wallHeightScreen;
+                    uint32_t texel = tex.sample(u, v);
+                    uint8_t r = static_cast<uint8_t>((texel & 0xFF) * shade);
+                    uint8_t g = static_cast<uint8_t>(((texel >> 8) & 0xFF) * shade);
+                    uint8_t b = static_cast<uint8_t>(((texel >> 16) & 0xFF) * shade);
+                    fb.pixels[y * fb.width + col] = Framebuffer::rgba(r, g, b);
+                }
 
                 portalTop[col] = std::clamp(std::max(cTop, ncTop), curTop, curBot);
                 portalBot[col] = std::clamp(std::min(cBot, ncBot), curTop, curBot);
@@ -169,12 +201,10 @@ void Renderer::renderSector(Framebuffer& fb, const World& world, const Player& p
                 subBot[col] = portalBot[col];
             }
 
-            renderSector(fb, world, player, wall.portalSector, wallStart, wallEnd, subTop, subBot, depth + 1);
+            renderSector(fb, world, textures, player, wall.portalSector, wallStart, wallEnd, subTop, subBot, depth + 1);
 
             for (int col = wallStart; col <= wallEnd; ++col)
-            {
                 topClip[col] = subTop[col];
-            }
         }
     }
 }

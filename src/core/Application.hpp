@@ -2,6 +2,7 @@
 #include <raylib.h>
 #include "graphics/Framebuffer.hpp"
 #include "graphics/Renderer.hpp"
+#include "graphics/Texture.hpp"
 #include "world/World.hpp"
 #include "gameplay/Player.hpp"
 
@@ -14,6 +15,7 @@ struct Application
 
     Framebuffer framebuffer{FB_WIDTH, FB_HEIGHT};
     Texture2D texture{};
+    TextureManager textures;
     Renderer renderer;
     World world;
     Player player{Vec2{5.0f, 5.0f}, 1.57f, 1.6f, 0};
