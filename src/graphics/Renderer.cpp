@@ -1,6 +1,12 @@
-#include "graphics/Renderer.hpp"
+﻿#include "graphics/Renderer.hpp"
 #include <cmath>
 #include <algorithm>
+
+static inline int safeClamp(int val, int lo, int hi)
+{
+    if (hi < lo) return lo;
+    return std::clamp(val, lo, hi);
+}
 
 void Renderer::render(Framebuffer& fb, const World& world, const TextureManager& textures, const Player& player)
 {
@@ -111,11 +117,16 @@ void Renderer::renderSector(Framebuffer& fb, const World& world, const TextureMa
         int texIndex = std::clamp(wall.textureId, 0, static_cast<int>(textures.textures.size()) - 1);
         const WallTexture& tex = textures.textures[texIndex];
 
-        std::vector<int> portalTop(fb.width);
-        std::vector<int> portalBot(fb.width);
+        std::vector<int> portalTop(fb.width, fb.height);
+        std::vector<int> portalBot(fb.width, -1);
 
         for (int col = wallStart; col <= wallEnd; ++col)
         {
+            int curTop = topClip[col];
+            int curBot = botClip[col];
+            if (curTop > curBot)
+                continue;
+
             float t = (col - sx0) * invSpan;
             float invZ = (1.0f - t) / z0 + t / z1;
             float z = 1.0f / invZ;
@@ -124,9 +135,6 @@ void Renderer::renderSector(Framebuffer& fb, const World& world, const TextureMa
 
             int cTop = static_cast<int>(std::ceil((1.0f - t) * sy0_ceil  + t * sy1_ceil));
             int cBot = static_cast<int>(std::floor((1.0f - t) * sy0_floor + t * sy1_floor));
-
-            int curTop = topClip[col];
-            int curBot = botClip[col];
 
             for (int y = curTop; y < std::min(cTop, curBot + 1); ++y)
                 fb.pixels[y * fb.width + col] = sector.ceilingColor;
@@ -140,8 +148,8 @@ void Renderer::renderSector(Framebuffer& fb, const World& world, const TextureMa
 
             if (!isPortal)
             {
-                int drawTop = std::clamp(cTop, curTop, curBot);
-                int drawBot = std::clamp(cBot, curTop, curBot);
+                int drawTop = safeClamp(cTop, curTop, curBot);
+                int drawBot = safeClamp(cBot, curTop, curBot);
 
                 for (int y = drawTop; y <= drawBot; ++y)
                 {
@@ -162,32 +170,38 @@ void Renderer::renderSector(Framebuffer& fb, const World& world, const TextureMa
                 int ncTop = static_cast<int>(std::ceil((1.0f - t) * n_sy0_ceil  + t * n_sy1_ceil));
                 int ncBot = static_cast<int>(std::floor((1.0f - t) * n_sy0_floor + t * n_sy1_floor));
 
-                int stepTop = std::clamp(cTop, curTop, curBot);
-                int stepCeilBot = std::clamp(ncTop - 1, curTop, curBot);
-                for (int y = stepTop; y <= stepCeilBot; ++y)
+                int stepTop = safeClamp(cTop, curTop, curBot);
+                int stepCeilBot = safeClamp(ncTop - 1, curTop, curBot);
+                if (stepTop <= stepCeilBot)
                 {
-                    float v = static_cast<float>(y - cTop) / wallHeightScreen;
-                    uint32_t texel = tex.sample(u, v);
-                    uint8_t r = static_cast<uint8_t>((texel & 0xFF) * shade);
-                    uint8_t g = static_cast<uint8_t>(((texel >> 8) & 0xFF) * shade);
-                    uint8_t b = static_cast<uint8_t>(((texel >> 16) & 0xFF) * shade);
-                    fb.pixels[y * fb.width + col] = Framebuffer::rgba(r, g, b);
+                    for (int y = stepTop; y <= stepCeilBot; ++y)
+                    {
+                        float v = static_cast<float>(y - cTop) / wallHeightScreen;
+                        uint32_t texel = tex.sample(u, v);
+                        uint8_t r = static_cast<uint8_t>((texel & 0xFF) * shade);
+                        uint8_t g = static_cast<uint8_t>(((texel >> 8) & 0xFF) * shade);
+                        uint8_t b = static_cast<uint8_t>(((texel >> 16) & 0xFF) * shade);
+                        fb.pixels[y * fb.width + col] = Framebuffer::rgba(r, g, b);
+                    }
                 }
 
-                int stepFloorTop = std::clamp(ncBot + 1, curTop, curBot);
-                int stepBot = std::clamp(cBot, curTop, curBot);
-                for (int y = stepFloorTop; y <= stepBot; ++y)
+                int stepFloorTop = safeClamp(ncBot + 1, curTop, curBot);
+                int stepBot = safeClamp(cBot, curTop, curBot);
+                if (stepFloorTop <= stepBot)
                 {
-                    float v = static_cast<float>(y - cTop) / wallHeightScreen;
-                    uint32_t texel = tex.sample(u, v);
-                    uint8_t r = static_cast<uint8_t>((texel & 0xFF) * shade);
-                    uint8_t g = static_cast<uint8_t>(((texel >> 8) & 0xFF) * shade);
-                    uint8_t b = static_cast<uint8_t>(((texel >> 16) & 0xFF) * shade);
-                    fb.pixels[y * fb.width + col] = Framebuffer::rgba(r, g, b);
+                    for (int y = stepFloorTop; y <= stepBot; ++y)
+                    {
+                        float v = static_cast<float>(y - cTop) / wallHeightScreen;
+                        uint32_t texel = tex.sample(u, v);
+                        uint8_t r = static_cast<uint8_t>((texel & 0xFF) * shade);
+                        uint8_t g = static_cast<uint8_t>(((texel >> 8) & 0xFF) * shade);
+                        uint8_t b = static_cast<uint8_t>(((texel >> 16) & 0xFF) * shade);
+                        fb.pixels[y * fb.width + col] = Framebuffer::rgba(r, g, b);
+                    }
                 }
 
-                portalTop[col] = std::clamp(std::max(cTop, ncTop), curTop, curBot);
-                portalBot[col] = std::clamp(std::min(cBot, ncBot), curTop, curBot);
+                portalTop[col] = safeClamp(std::max(cTop, ncTop), curTop, curBot);
+                portalBot[col] = safeClamp(std::min(cBot, ncBot), curTop, curBot);
             }
         }
 
