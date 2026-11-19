@@ -24,5 +24,15 @@ void Player::update(float dt)
     if (move.length() > 0.0001f)
     {
         position += move.normalized() * (moveSpeed * dt);
+        walkTimer += dt * 10.0f;
+    }
+    else
+    {
+        walkTimer = 0.0f;
+    }
+
+    if (shootTimer > 0.0f)
+    {
+        shootTimer -= dt;
     }
 }

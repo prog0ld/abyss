@@ -18,11 +18,15 @@ struct Application
     TextureManager textures;
     Renderer renderer;
     World world;
-    Player player{Vec2{5.0f, 5.0f}, 1.57f, 1.6f, 0};
+    Player player{Vec2{12.0f, 12.0f}, 1.57f, 1.6f, 0};
 
     void init();
     void run();
     void update(float dt);
     void render();
     void shutdown();
+
+private:
+    void handleCollisions();
+    void drawWeaponHUD();
 };
