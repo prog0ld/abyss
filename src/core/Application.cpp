@@ -12,48 +12,46 @@ void Application::init()
     textures.init();
 
     // -------------------------------------------------------------
-    // SECTOR 0: Central Laboratory (Grand Hall: 24x24m, Floor: 0.0, Ceil: 3.6m)
+    // SECTOR 0: Central Laboratory (24x24m, Floor: 0.0, Ceil: 3.6m)
     // -------------------------------------------------------------
     Sector lab(0.0f, 3.6f, Framebuffer::rgba(35, 38, 44), Framebuffer::rgba(22, 24, 28));
-    // South Wall (solid)
     lab.addWall(Vec2{0.0f, 0.0f}, Vec2{24.0f, 0.0f}, -1, 0);
 
-    // East Wall (leads to Sector 4: Storage Warehouse between Y: 9..15)
+    // East Wall -> Storage Warehouse (Sector 4)
     lab.addWall(Vec2{24.0f, 0.0f},  Vec2{24.0f, 9.0f},  -1, 0);
-    lab.addWall(Vec2{24.0f, 9.0f},  Vec2{24.0f, 15.0f},  4, 1); // Portal -> Storage
+    lab.addWall(Vec2{24.0f, 9.0f},  Vec2{24.0f, 15.0f},  4, 1);
     lab.addWall(Vec2{24.0f, 15.0f}, Vec2{24.0f, 24.0f}, -1, 0);
 
-    // North Wall (leads to Sector 1: Long Hallway between X: 10..14)
+    // North Wall -> Hallway (Sector 1)
     lab.addWall(Vec2{24.0f, 24.0f}, Vec2{14.0f, 24.0f}, -1, 0);
-    lab.addWall(Vec2{14.0f, 24.0f}, Vec2{10.0f, 24.0f},  1, 1); // Portal -> Hallway
+    lab.addWall(Vec2{14.0f, 24.0f}, Vec2{10.0f, 24.0f},  1, 1);
     lab.addWall(Vec2{10.0f, 24.0f}, Vec2{0.0f,  24.0f}, -1, 0);
 
-    // West Wall (leads to Sector 3: Security Office between Y: 9..15)
+    // West Wall -> Security Door (Sector 5 between Y: 9..15)
     lab.addWall(Vec2{0.0f, 24.0f}, Vec2{0.0f, 15.0f}, -1, 0);
-    lab.addWall(Vec2{0.0f, 15.0f}, Vec2{0.0f, 9.0f},   3, 1); // Portal -> Security
+    lab.addWall(Vec2{0.0f, 15.0f}, Vec2{0.0f, 9.0f},   5, 1); // Portal -> Security Door!
     lab.addWall(Vec2{0.0f, 9.0f},  Vec2{0.0f, 0.0f},  -1, 0);
     world.addSector(lab);
 
     // -------------------------------------------------------------
-    // SECTOR 1: Maintenance Hallway (4m wide, 22m long! Floor: +0.4m step, Ceil: 2.8m)
+    // SECTOR 1: Maintenance Hallway (4m wide, 22m long)
     // -------------------------------------------------------------
     Sector hall(0.4f, 2.8f, Framebuffer::rgba(45, 38, 35), Framebuffer::rgba(28, 22, 20));
-    hall.addWall(Vec2{10.0f, 24.0f}, Vec2{14.0f, 24.0f},  0, 1); // Portal back to Lab
-    hall.addWall(Vec2{14.0f, 24.0f}, Vec2{14.0f, 46.0f}, -1, 2); // East wall of long hall
-    hall.addWall(Vec2{14.0f, 46.0f}, Vec2{10.0f, 46.0f},  2, 1); // Portal -> Reactor Core!
-    hall.addWall(Vec2{10.0f, 46.0f}, Vec2{10.0f, 24.0f}, -1, 2); // West wall of long hall
+    hall.addWall(Vec2{10.0f, 24.0f}, Vec2{14.0f, 24.0f},  0, 1);
+    hall.addWall(Vec2{14.0f, 24.0f}, Vec2{14.0f, 46.0f}, -1, 2);
+    hall.addWall(Vec2{14.0f, 46.0f}, Vec2{10.0f, 46.0f},  2, 1);
+    hall.addWall(Vec2{10.0f, 46.0f}, Vec2{10.0f, 24.0f}, -1, 2);
     world.addSector(hall);
 
     // -------------------------------------------------------------
-    // SECTOR 2: Reactor Generator Core (Massive Chamber: 30x24m, High Ceil: 6.0m)
+    // SECTOR 2: Reactor Generator Core (30x24m, High Ceil: 6.0m)
     // -------------------------------------------------------------
     Sector reactor(0.0f, 6.0f, Framebuffer::rgba(25, 32, 40), Framebuffer::rgba(15, 18, 24));
-    // South Wall (portal from hallway between X: 10..14)
-    reactor.addWall(Vec2{10.0f, 46.0f}, Vec2{14.0f, 46.0f},  1, 1); // Portal back to Hall
+    reactor.addWall(Vec2{10.0f, 46.0f}, Vec2{14.0f, 46.0f},  1, 1);
     reactor.addWall(Vec2{14.0f, 46.0f}, Vec2{26.0f, 46.0f}, -1, 0);
-    reactor.addWall(Vec2{26.0f, 46.0f}, Vec2{26.0f, 70.0f}, -1, 2); // Far East
-    reactor.addWall(Vec2{26.0f, 70.0f}, Vec2{-2.0f, 70.0f}, -1, 0); // Northern Reactor Backwall
-    reactor.addWall(Vec2{-2.0f, 70.0f}, Vec2{-2.0f, 46.0f}, -1, 2); // Far West
+    reactor.addWall(Vec2{26.0f, 46.0f}, Vec2{26.0f, 70.0f}, -1, 2);
+    reactor.addWall(Vec2{26.0f, 70.0f}, Vec2{-2.0f, 70.0f}, -1, 0);
+    reactor.addWall(Vec2{-2.0f, 70.0f}, Vec2{-2.0f, 46.0f}, -1, 2);
     reactor.addWall(Vec2{-2.0f, 46.0f}, Vec2{10.0f, 46.0f}, -1, 0);
     world.addSector(reactor);
 
@@ -61,25 +59,39 @@ void Application::init()
     // SECTOR 3: Security & Control Room (14x16m, Floor: 0.0m, Ceil: 3.0m)
     // -------------------------------------------------------------
     Sector security(0.0f, 3.0f, Framebuffer::rgba(30, 35, 30), Framebuffer::rgba(20, 24, 20));
-    security.addWall(Vec2{0.0f, 9.0f},   Vec2{0.0f, 15.0f},   0, 1); // Portal back to Lab
-    security.addWall(Vec2{0.0f, 15.0f},  Vec2{0.0f, 20.0f},  -1, 0);
-    security.addWall(Vec2{0.0f, 20.0f},  Vec2{-14.0f, 20.0f},-1, 0);
-    security.addWall(Vec2{-14.0f, 20.0f},Vec2{-14.0f, 4.0f}, -1, 2); // West monitoring wall
-    security.addWall(Vec2{-14.0f, 4.0f}, Vec2{0.0f, 4.0f},   -1, 0);
-    security.addWall(Vec2{0.0f, 4.0f},   Vec2{0.0f, 9.0f},   -1, 0);
+    // East wall connects to Security Door (Sector 5)
+    security.addWall(Vec2{-1.0f, 9.0f},   Vec2{-1.0f, 15.0f},  5, 1); // Portal -> Door
+    security.addWall(Vec2{-1.0f, 15.0f},  Vec2{-1.0f, 20.0f}, -1, 0);
+    security.addWall(Vec2{-1.0f, 20.0f},  Vec2{-14.0f, 20.0f},-1, 0);
+    security.addWall(Vec2{-14.0f, 20.0f}, Vec2{-14.0f, 4.0f}, -1, 2);
+    security.addWall(Vec2{-14.0f, 4.0f},  Vec2{-1.0f, 4.0f},  -1, 0);
+    security.addWall(Vec2{-1.0f, 4.0f},   Vec2{-1.0f, 9.0f},  -1, 0);
     world.addSector(security);
 
     // -------------------------------------------------------------
     // SECTOR 4: Storage Warehouse (16x16m, Low Floor: -0.3m, Ceil: 3.8m)
     // -------------------------------------------------------------
     Sector storage(-0.3f, 3.8f, Framebuffer::rgba(40, 36, 32), Framebuffer::rgba(24, 22, 20));
-    storage.addWall(Vec2{24.0f, 15.0f}, Vec2{24.0f, 9.0f},   0, 1); // Portal back to Lab
+    storage.addWall(Vec2{24.0f, 15.0f}, Vec2{24.0f, 9.0f},   0, 1);
     storage.addWall(Vec2{24.0f, 9.0f},  Vec2{24.0f, 4.0f},  -1, 2);
     storage.addWall(Vec2{24.0f, 4.0f},  Vec2{40.0f, 4.0f},  -1, 2);
     storage.addWall(Vec2{40.0f, 4.0f},  Vec2{40.0f, 20.0f}, -1, 0);
     storage.addWall(Vec2{40.0f, 20.0f}, Vec2{24.0f, 20.0f}, -1, 2);
     storage.addWall(Vec2{24.0f, 20.0f}, Vec2{24.0f, 15.0f}, -1, 2);
     world.addSector(storage);
+
+    // -------------------------------------------------------------
+    // SECTOR 5: Security Doorway Sector (1m wide, Y: 9..15, starts closed: Ceil = 0.0m)
+    // -------------------------------------------------------------
+    Sector doorSec(0.0f, 0.0f, Framebuffer::rgba(30, 30, 35), Framebuffer::rgba(20, 20, 25));
+    doorSec.addWall(Vec2{0.0f, 9.0f},   Vec2{0.0f, 15.0f},   0, 1); // Portal -> Lab
+    doorSec.addWall(Vec2{0.0f, 15.0f},  Vec2{-1.0f, 15.0f}, -1, 0); // Side jamb
+    doorSec.addWall(Vec2{-1.0f, 15.0f}, Vec2{-1.0f, 9.0f},  3, 1); // Portal -> Security Office
+    doorSec.addWall(Vec2{-1.0f, 9.0f},  Vec2{0.0f, 9.0f},   -1, 0); // Side jamb
+    world.addSector(doorSec);
+
+    // Set up interactive door logic
+    securityDoor = Door(5, 0.0f, 2.8f, 1.8f);
 
     player = Player(Vec2{12.0f, 12.0f}, 1.57f, 1.6f, 0);
     player.moveSpeed = 6.0f;
@@ -104,7 +116,11 @@ void Application::handleCollisions()
 
     for (const auto& w : sec.walls)
     {
-        if (w.portalSector >= 0)
+        // If it's a door sector and not high enough to walk through, treat as solid
+        bool isDoorPortal = (w.portalSector == 5 || (player.currentSector == 5 && w.portalSector >= 0));
+        bool doorIsClosed = (world.sectors[5].ceilingHeight < 2.0f);
+
+        if (w.portalSector >= 0 && (!isDoorPortal || !doorIsClosed))
             continue;
 
         float ax = w.p0.x, ay = w.p0.y;
@@ -170,6 +186,16 @@ void Application::drawWeaponHUD()
 
     std::string ammoText = "AMMO: " + std::to_string(player.ammo) + " / 12";
     DrawText(ammoText.c_str(), 20, WIN_HEIGHT - 45, 24, YELLOW);
+
+    // Prompt de interactiune cu usa
+    if (canInteractDoor && !securityDoor.isOpen)
+    {
+        const char* prompt = "[E] OPEN SECURITY DOOR";
+        int pw = MeasureText(prompt, 22);
+        DrawRectangle(WIN_WIDTH / 2 - pw / 2 - 12, WIN_HEIGHT / 2 + 50, pw + 24, 34, Color{15, 20, 25, 200});
+        DrawRectangleLines(WIN_WIDTH / 2 - pw / 2 - 12, WIN_HEIGHT / 2 + 50, pw + 24, 34, ORANGE);
+        DrawText(prompt, WIN_WIDTH / 2 - pw / 2, WIN_HEIGHT / 2 + 56, 22, YELLOW);
+    }
 }
 
 void Application::update(float dt)
@@ -194,6 +220,19 @@ void Application::update(float dt)
         {
             player.ammo = 12;
         }
+    }
+
+    // Actualizam usa
+    securityDoor.update(dt);
+    world.sectors[securityDoor.sectorId].ceilingHeight = securityDoor.currentCeil;
+
+    // Verificam distanta pana la usa (ușa este la X: 0.0, Y: 12.0)
+    float doorDist = (player.position - Vec2{0.0f, 12.0f}).length();
+    canInteractDoor = (doorDist < 5.0f);
+
+    if (canInteractDoor && IsKeyPressed(KEY_E))
+    {
+        securityDoor.open();
     }
 
     handleCollisions();
@@ -235,11 +274,13 @@ void Application::render()
         float offX = rx + 35;
         float offY = ry + 15;
 
-        for (const auto& sec : world.sectors)
+        for (size_t i = 0; i < world.sectors.size(); ++i)
         {
+            const auto& sec = world.sectors[i];
             for (const auto& w : sec.walls)
             {
                 Color col = (w.portalSector >= 0) ? Color{50, 200, 255, 200} : Color{160, 160, 160, 255};
+                if (i == 5) col = (securityDoor.isOpen) ? GREEN : ORANGE; // Door highlighted on radar!
                 DrawLine((int)(offX + w.p0.x * s), (int)(offY + w.p0.y * s),
                          (int)(offX + w.p1.x * s), (int)(offY + w.p1.y * s), col);
             }
@@ -255,9 +296,10 @@ void Application::render()
             "Sector 1: Maintenance Hallway",
             "Sector 2: Generator Core",
             "Sector 3: Security & Control Room",
-            "Sector 4: Storage Warehouse"
+            "Sector 4: Storage Warehouse",
+            "Sector 5: Security Doorway"
         };
-        int sId = std::clamp(player.currentSector, 0, 4);
+        int sId = std::clamp(player.currentSector, 0, 5);
         DrawText(secNames[sId], 14, 14, 20, RAYWHITE);
 
         drawWeaponHUD();
