@@ -1,4 +1,4 @@
-﻿#include "graphics/Renderer.hpp"
+#include "graphics/Renderer.hpp"
 #include <cmath>
 #include <algorithm>
 
@@ -134,7 +134,7 @@ void Renderer::renderSector(Framebuffer& fb, const World& world, const TextureMa
             for (int y = std::max(cBot + 1, curTop); y <= curBot; ++y)
                 fb.pixels[y * fb.width + col] = sector.floorColor;
 
-            float shade = std::clamp(1.0f - (z / 20.0f), 0.2f, 1.0f);
+            float shade = std::clamp(1.0f - (z / 42.0f), 0.15f, 1.0f);
             float wallHeightScreen = static_cast<float>(cBot - cTop);
             if (wallHeightScreen < 1.0f) wallHeightScreen = 1.0f;
 
